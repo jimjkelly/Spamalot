@@ -10,6 +10,7 @@ import urllib2
 
 SEARCH_URL = 'https://maps.googleapis.com/maps/api/place/textsearch/json?{}'
 DETAILS_URL = 'https://maps.googleapis.com/maps/api/place/details/json?{}'
+NO_RESULTS = 'No results'
 
 
 class APICommunicationError(Exception):
@@ -22,7 +23,9 @@ def check_return(result, default_error=None):
     """
     error_message = None
 
-    if not result.get('status') == 'OK':
+    if result.get('status') == 'ZERO_RESULTS':
+        error_message = NO_RESULTS
+    elif not result.get('status') == 'OK':
         if 'error_message' in result:
             error_message = result['error_message']
         else:
@@ -37,7 +40,7 @@ def check_return(result, default_error=None):
 
 def collect(query, api_key):
     search_params = urllib.urlencode({
-        'query': query,
+        'query': query.encode('utf-8'),
         'key': api_key
     })
 
@@ -68,14 +71,19 @@ if __name__ == '__main__':
 
     with open(sys.argv[1]) as fp:
         for place in fp.read().split('\n'):
-            if place.strip():
+            place = place.strip().decode('utf-8')
+            if place:
                 try:
-                    address = collect(place.strip(), sys.argv[2])
-                    print '{}:: {}'.format(place.strip(), address)
+                    address = collect(place, sys.argv[2])
+                    print '{} :: {}'.format(place.encode('utf-8'),
+                                            address.encode('utf-8'))
                 except APICommunicationError as e:
-                    error = 'Error communicating with the server: {}'.format(
+                    error = 'Error retrieving {}: {}'.format(
+                        place.encode('utf-8'),
                         e.message
                     )
 
                     sys.stderr.write(error + '\n')
-                    sys.exit(1)
+
+                    if e.message != NO_RESULTS:
+                        sys.exit(1)
