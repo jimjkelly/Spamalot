@@ -77,7 +77,7 @@ if __name__ == '__main__':
                     address = collect(place, sys.argv[2])
                     print '{} :: {}'.format(place.encode('utf-8'),
                                             address.encode('utf-8'))
-                except APICommunicationError as e:
+                except (APICommunicationError, urllib2.HTTPError) as e:
                     error = 'Error retrieving {}: {}'.format(
                         place.encode('utf-8'),
                         e.message
